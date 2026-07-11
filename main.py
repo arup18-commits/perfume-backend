@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import uuid
 from typing import Optional
-
+import os
 
 # FastAPI Initialization
 app = FastAPI(title="ScenTech AI Engine Pro", version="3.0")
@@ -20,16 +20,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-import os
-
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 🛠️ রিকোয়েস্ট ডাটা মডেল আপডেট (সবগুলোকে Optional করা হয়েছে যাতে ক্র্যাশ না করে)
+# 🛠️ রিকোয়েস্ট ডাটা মডেল আপডেট
 class FragranceRequest(BaseModel):
     user_id: str
     bottle_size: str
     is_gift: bool = False
-    # স্ট্যান্ডার্ড ফিল্ডস
     product_type: Optional[str] = "Perfume"
     occasion: Optional[str] = "Wedding"
     mood: Optional[str] = "Luxury"
@@ -37,7 +34,6 @@ class FragranceRequest(BaseModel):
     season: Optional[str] = "Summer"
     longevity: Optional[str] = "8 Hours"
     custom_label: Optional[str] = "Standard"
-    # গিফটের নতুন ফিল্ডস
     gift_recipient_gender: Optional[str] = "Unisex"
     gift_recipient_age: Optional[str] = "15-25"
     gift_recipient_vibe: Optional[str] = "Bold"
@@ -57,7 +53,7 @@ class StatusUpdateRequest(BaseModel):
     order_id: str
     status: str
 
-# Premium Raw Material Pricing Database (USD values)
+# Premium Raw Material Pricing Database
 INGREDIENTS_COST = {
     "Oud": 6.50, "Rose": 4.50, "Jasmine": 4.00, "Musk": 5.00, 
     "Sandalwood": 5.50, "Bergamot": 2.00, "Vanilla": 3.00, 
@@ -82,7 +78,7 @@ INGREDIENTS_STORY = {
         "story": "হাজারো তাজা গোলাপের নির্যাস দিয়ে তৈরি এই নোটটি ভালোবাসার এক চিরন্তন ও মোহনীয় গল্প বলে।"
     },
     "Jasmine": {
-        "bangla_name": "জেসমিন (চামেলী ফুল)",
+        "bangla_name": "জেสมিন (চামেলী ফুল)",
         "benefit": "আত্মবিশ্বাস বাড়ায় এবং চারপাশের মানুষকে আকর্ষিত করার তীব্র ক্ষমতা রাখে।",
         "story": "রাতের বেলা ফোটা এই রহস্যময় ফুলের তীব্র মিষ্টি সুঘ্রাণ পারফিউমের প্রধান আকর্ষণ হয়ে দাঁড়ায়।"
     },
@@ -93,7 +89,7 @@ INGREDIENTS_STORY = {
     },
     "Sandalwood": {
         "bangla_name": "চন্দন কাঠ",
-        "benefit": "মনকে স্থির ও গভীর করে এবং সুঘ্রাণে একটি মাটির তৈরি উষ্ণ আভিজাত্য দেয়।",
+        "benefit": "মনকে স্থির ও গভীর করে এবং সুঘ্রাণে একটি maটির তৈরি উষ্ণ আভিজাত্য দেয়।",
         "story": "শত বছরের পুরনো চন্দন কাঠের শান্ত ও দীর্ঘস্থায়ী ঘ্রাণ পারফিউমকে একটি ক্লাসিক রূপ দেয়।"
     },
     "Musk": {
@@ -122,41 +118,33 @@ async def generate_fragrance(request: FragranceRequest):
         except:
             size_ml = 50
 
-        # 🎁 গিফট মোড অন থাকলে লজিক ডাইনামিকালি সেট হবে
         if request.is_gift:
-            # গিফটের ভাইবকেই আমরা প্রধান 'Mood' হিসেবে ধরব
             current_mood = request.gift_recipient_vibe
-            
-            # বয়স ও জেন্ডার অনুযায়ী প্রোফাইল সেটআপ
             if current_mood.lower() == "bold":
                 recommended_top = ["Bergamot"]
                 recommended_heart = ["Jasmine", "Rose"]
                 recommended_base = ["Oud", "Musk"]
                 top_pct, heart_pct, base_pct = 20, 30, 50
-                blend_name = f"Signature Gift - Bold Premium"
+                blend_name = "Signature Gift - Bold Premium"
                 fragrance_profile = f"A charismatic and high-impact formula tailored for a {request.gift_recipient_gender} who loves a bold impression."
                 explanation = f"Crafted as a custom gift for the age group {request.gift_recipient_age}. We amplified the Base Notes to 50% using Rich Oud & Musk to match the bold vibe."
-            
             elif current_mood.lower() == "elegant":
                 recommended_top = ["Lavender", "Bergamot"]
                 recommended_heart = ["Rose"]
                 recommended_base = ["Sandalwood", "Amber"]
                 top_pct, heart_pct, base_pct = 25, 35, 40
-                blend_name = f"Signature Gift - Pure Elegance"
-                fragrance_profile = f"An exquisite, sophisticated scent trail designed for an elegant persona."
+                blend_name = "Signature Gift - Pure Elegance"
+                fragrance_profile = "An exquisite, sophisticated scent trail designed for an elegant persona."
                 explanation = f"Perfect choice for an elegant {request.gift_recipient_gender}. Balanced with classic Rose heart notes and warm Sandalwood base notes."
-            
-            else: # Calm বা অন্য যেকোনো ভাইব
+            else:
                 recommended_top = ["Lavender"]
                 recommended_heart = ["Jasmine"]
                 recommended_base = ["Vanilla", "Musk"]
                 top_pct, heart_pct, base_pct = 30, 40, 30
-                blend_name = f"Signature Gift - Serene Calm"
+                blend_name = "Signature Gift - Serene Calm"
                 fragrance_profile = "A soothing, smooth, and peaceful aroma with a cozy comforting vibe."
-                explanation = f"Designed specially for a calm mindset. Top notes are focused on calming Lavender to deliver instant serenity."
-
+                explanation = "Designed specially for a calm mindset. Top notes are focused on calming Lavender to deliver instant serenity."
         else:
-            # 🧪 স্ট্যান্ডার্ড মোড (আগের কাস্টমাইজেশন লজিক)
             current_mood = request.mood
             mood_lower = request.mood.lower()
             occasion_lower = request.occasion.lower()
@@ -192,12 +180,10 @@ async def generate_fragrance(request: FragranceRequest):
                 fragrance_profile = "A warm, sensual amber-floral trail with a comforting sweet undertone."
                 explanation = f"To capture a {request.mood} mood for your {request.occasion}, the formula sets Heart Notes to {heart_pct}% using premium Rose and Jasmine."
 
-        # নোটের রেশিও ক্যালকুলেশন
         top_notes = {ing: round(top_pct / len(recommended_top), 1) for ing in recommended_top}
         heart_notes = {ing: round(heart_pct / len(recommended_heart), 1) for ing in recommended_heart}
         base_notes = {ing: round(base_pct / len(recommended_base), 1) for ing in recommended_base}
 
-        # Compatibility Scoring Engine
         compatibility_score = 95
         if not request.is_gift and (request.season.lower() == "summer" and base_pct >= 45):
             compatibility_score -= 15
@@ -205,7 +191,6 @@ async def generate_fragrance(request: FragranceRequest):
         compatibility_score = min(max(compatibility_score, 0), 100)
         quality_rating = "Masterpiece Blend 🌟" if compatibility_score >= 90 else "Highly Balanced Blend ✅"
 
-        # 🛠️ Pricing Logic
         essence_ratio = 0.35 if request.product_type == "Attar" else 0.20
         total_essence_ml = size_ml * essence_ratio
         
@@ -234,9 +219,9 @@ async def generate_fragrance(request: FragranceRequest):
         all_selected_ingredients = list(set(recommended_top + recommended_heart + recommended_base))
         ingredient_stories = {ing: INGREDIENTS_STORY.get(ing, {"bangla_name": ing, "benefit": "প্রিমিয়াম সুঘ্রাণ", "story": "এআই দ্বারা নির্বাচিত উপাদান।"}) for ing in all_selected_ingredients}
 
-        # Save Generated Profile into DB
+        # Save Generated Profile into DB (🛠️ কানেকশন বাগটি এখানে ফিক্স করা হয়েছে)
         try:
-            psycopg2.connect(DATABASE_URL)
+            conn = psycopg2.connect(DATABASE_URL)  # ✅ এখানে 'conn =' যোগ করা হয়েছে
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'perfume_profiles'")
             prof_cols = [r['column_name'] for r in cur.fetchall()]
@@ -259,8 +244,9 @@ async def generate_fragrance(request: FragranceRequest):
             conn.commit()
             cur.close()
             conn.close()
+            print("✅ Perfume profile saved successfully into DB!")
         except Exception as db_err:
-            print(f"❌ DB Warning: {db_err}")
+            print(f"❌ DB Warning/Error: {db_err}")
 
         return {
             "status": "success",
@@ -450,5 +436,4 @@ async def clear_all_data():
 
 if __name__ == "__main__":
     import uvicorn
-    # 💡 পোর্ট ৮০০১ জ্যাম থাকলে এখান থেকেই সরাসরি ৮MDA বা ৮০০৫ করে দেওয়া যাবে
     uvicorn.run("main:app", host="127.0.0.1", port=8005, reload=True, workers=1)
