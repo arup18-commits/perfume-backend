@@ -20,14 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database Configuration
-DB_CONFIG = {
-    "host": "localhost",
-    "database": "perfume_db",
-    "user": "postgres",
-    "password": "123456789",
-    "port": "5432"
-}
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 🛠️ রিকোয়েস্ট ডাটা মডেল আপডেট (সবগুলোকে Optional করা হয়েছে যাতে ক্র্যাশ না করে)
 class FragranceRequest(BaseModel):
@@ -241,7 +236,7 @@ async def generate_fragrance(request: FragranceRequest):
 
         # Save Generated Profile into DB
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            psycopg2.connect(DATABASE_URL)
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'perfume_profiles'")
             prof_cols = [r['column_name'] for r in cur.fetchall()]
@@ -295,7 +290,7 @@ async def generate_fragrance(request: FragranceRequest):
 async def place_order(order: OrderRequest):
     try:
         order_id = str(uuid.uuid4())
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'orders'")
@@ -356,7 +351,7 @@ async def place_order(order: OrderRequest):
 @app.get("/api/v1/get-orders")
 async def get_orders():
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'orders'")
@@ -378,7 +373,7 @@ async def get_orders():
 @app.put("/api/v1/update-order-status")
 async def update_order_status(request: StatusUpdateRequest):
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         query = "UPDATE orders SET order_status = %s WHERE id = %s"
         cur.execute(query, (request.status, request.order_id))
@@ -393,7 +388,7 @@ async def update_order_status(request: StatusUpdateRequest):
 @app.get("/api/v1/admin/analytics")
 async def get_admin_analytics():
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute("SELECT COUNT(id) as total_orders, COALESCE(SUM(total_price), 0) as total_revenue FROM orders;")
@@ -439,7 +434,7 @@ async def get_admin_analytics():
 @app.delete("/api/v1/clear-all-data")
 async def clear_all_data():
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         cur.execute("TRUNCATE TABLE orders RESTART IDENTITY CASCADE;")
         cur.execute("TRUNCATE TABLE perfume_profiles RESTART IDENTITY CASCADE;")
